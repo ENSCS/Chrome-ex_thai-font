@@ -1,26 +1,28 @@
-const DEF = 110, D = { enabled: true, size: DEF, lite: ["youtube.com"], font: "mac" }, $ = (i) => document.getElementById(i);
-const PRESETS = [100, 110, 125, 150];
+const DEFMIN = 22;
+const D = { enabled: true, lite: ["youtube.com"], font: "mac", minPx: DEFMIN };
+const $ = (i) => document.getElementById(i);
+const PRESETS = [18, 22, 26, 30];
 let st = { ...D };
 const chips = $("chips");
 PRESETS.forEach((n) => {
   const b = document.createElement("button");
-  b.textContent = n === DEF ? n + " ★" : n;
+  b.textContent = n === DEFMIN ? n + " ★" : n;
   b.dataset.n = n;
-  b.title = n === DEF ? "ค่าเริ่มต้น" : "";
-  b.onclick = () => save({ size: n });
+  b.title = n === DEFMIN ? "ค่าเริ่มต้น" : "";
+  b.onclick = () => save({ minPx: n });
   chips.appendChild(b);
 });
 function show() {
   $("sw").classList.toggle("on", st.enabled);
   $("sw").setAttribute("aria-checked", st.enabled);
-  $("pct").textContent = st.size + "%";
+  $("pct").textContent = st.minPx + "px";
   $("ctl").classList.toggle("dim", !st.enabled);
-  chips.querySelectorAll("button").forEach((b) => b.classList.toggle("sel", +b.dataset.n === st.size));
+  chips.querySelectorAll("button").forEach((b) => b.classList.toggle("sel", +b.dataset.n === st.minPx));
   document.querySelectorAll("#fonts button").forEach((b) => b.classList.toggle("sel", b.dataset.f === st.font));
   showLite();
 }
 const save = (p) => { st = { ...st, ...p }; chrome.storage.local.set(p); show(); };
-const clamp = (n) => Math.min(200, Math.max(70, n));
+const clamp = (n) => Math.min(36, Math.max(14, n));
 let host = "";
 const inLite = () => st.lite.some((h) => host === h || host.endsWith("." + h));
 function showLite() {
@@ -43,6 +45,6 @@ if ($("liteSw")) $("liteSw").onclick = () => {
   save({ lite });
 };
 $("sw").onclick = () => { save({ enabled: !st.enabled }); if (!st.enabled) window.close(); };
-$("plus").onclick = () => save({ size: clamp(st.size + 5) });
-$("minus").onclick = () => save({ size: clamp(st.size - 5) });
+$("plus").onclick = () => save({ minPx: clamp(st.minPx + 2) });
+$("minus").onclick = () => save({ minPx: clamp(st.minPx - 2) });
 document.querySelectorAll("#fonts button").forEach((b) => (b.onclick = () => save({ font: b.dataset.f })));

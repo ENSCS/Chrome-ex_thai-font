@@ -27,32 +27,52 @@
   const STACKS = {
     mac: `system-ui,"Thonburi","${FAMILY}","Sarabun","Noto Sans Thai","Tahoma",sans-serif`,
     sarabun: `"${FAMILY}","Sarabun","Noto Sans Thai","Tahoma",sans-serif`,
+    // ฟอนต์จาก Google Fonts: Google Sans (อังกฤษ/ตัวเลข) + Sarabun (ไทย)
+    google: `"Google Sans","Sarabun","Noto Sans Thai","Tahoma",sans-serif`,
   };
+  const GF_HREF =
+    "https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700" +
+    "&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap";
+  const GF_ID = "__thai-readable-gf__";
+  function injectGoogleFonts() {
+    if (document.getElementById(GF_ID)) return;
+    const root = document.head || document.documentElement;
+    const mk = (attrs) => {
+      const l = document.createElement("link");
+      Object.entries(attrs).forEach(([k, v]) => l.setAttribute(k, v));
+      l.className = GF_ID;
+      return l;
+    };
+    root.appendChild(mk({ rel: "preconnect", href: "https://fonts.googleapis.com" }));
+    root.appendChild(mk({ rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" }));
+    const css = mk({ rel: "stylesheet", href: GF_HREF });
+    css.id = GF_ID;
+    root.appendChild(css);
+  }
   // บน Mac โหมด macOS ไม่ต้องใช้ไฟล์ Sarabun (Thonburi มีในเครื่อง) จึงไม่ฝัง @font-face ลดการโหลด
   const isMac = /Mac/i.test(navigator.platform || navigator.userAgent);
-  const buildCss = (lite, font) => `${font === "sarabun" || !isMac ? faces : ""}
-${sel}{font-family:${STACKS[font] || STACKS.mac} !important${lite ? "" : ";line-height:1.8 !important"}}`;
+  const needFaces = (font) => font === "sarabun" || (font !== "google" && !isMac);
+  const FACES_ID = "__thai-readable-faces__";
+  const buildCss = (lite, font) => `${sel}{font-family:${STACKS[font] || STACKS.mac} !important${lite ? "" : ";line-height:1.8 !important"}}`;
 
-  const ZOOM_ID = "__thai-readable-zoom__";
   function apply(lite, font) {
+    if (font === "google") injectGoogleFonts();
+    // @font-face แยก <style> ต่างหาก เพราะตอนอ่านขนาดเดิมเราปิดชีตหลักชั่วคราว
+    // ถ้า @font-face อยู่ในชีตเดียวกันจะถูกรีเซ็ตเป็น "ยังไม่โหลด" ทุกครั้ง ทำให้วัดขนาดผิด
+    if (needFaces(font) && !document.getElementById(FACES_ID)) {
+      const f = document.createElement("style");
+      f.id = FACES_ID;
+      f.textContent = faces;
+      (document.head || document.documentElement).appendChild(f);
+    }
     if (document.getElementById(STYLE_ID)) return;
     const el = document.createElement("style");
     el.id = STYLE_ID;
     el.textContent = buildCss(lite, font);
     (document.head || document.documentElement).appendChild(el);
   }
-  function setSize(pct) {
-    let el = document.getElementById(ZOOM_ID);
-    if (!pct || pct === 100) return el?.remove();
-    if (!el) {
-      el = document.createElement("style");
-      el.id = ZOOM_ID;
-      (document.head || document.documentElement).appendChild(el);
-    }
-    el.textContent = `html{zoom:${pct / 100} !important}`;
-  }
   // ---- ขนาดตัวอักษรขั้นต่ำ ----
-  const MIN_PX = 14;
+  let MIN_PX = 22; // ปรับได้จากเมนู
   const MARK = "data-trf-min";
   const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "SVG", "CANVAS", "IFRAME", "TEXTAREA"]);
   const iconSel = EXCLUDE.join(",");
@@ -99,7 +119,10 @@ ${sel}{font-family:${STACKS[font] || STACKS.mac} !important${lite ? "" : ";line-
     return r;
   }
 
+  let targetReady = false;
+
   function enforceMin(roots) {
+    if (!targetReady) return;
     const els = [];
     roots.forEach((r) => collect(r, els));
     // อ่านค่าเดิมทั้งหมดตอนปิด CSS ฟอนต์ของเราชั่วคราว (ทำใน tick เดียว ไม่มีการวาดหน้า)
@@ -129,8 +152,28 @@ ${sel}{font-family:${STACKS[font] || STACKS.mac} !important${lite ? "" : ";line-
     if (observer) return;
     targetStack = STACKS[font] || STACKS.mac;
     targetH = 0;
+    targetReady = false;
     ratioCache.clear();
-    enforceMin([document.documentElement]);
+    // ฟอนต์จาก Google ต้องรอโหลดเสร็จก่อนวัด ไม่งั้นจะวัดจากฟอนต์สำรอง
+    const loads =
+      font === "google"
+        ? [document.fonts.load('400 16px "Google Sans"', "0"), document.fonts.load('400 16px "Sarabun"', "น")]
+        : font === "sarabun"
+          ? [document.fonts.load(`400 16px "${FAMILY}"`, "น0")]
+          : [];
+    const ready = loads.length
+      ? Promise.race([Promise.all(loads).catch(() => {}), new Promise((r) => setTimeout(r, 3000))])
+      : Promise.resolve();
+    ready.then(() => {
+      if (!observer) return;
+      targetReady = true;
+      enforceMin([document.documentElement]);
+      // ไว้ตรวจสอบ: ดู data-trf-debug ที่แท็ก <html> ใน DevTools
+      document.documentElement.setAttribute(
+        "data-trf-debug",
+        JSON.stringify({ font, targetH: Math.round(targetH), stack: targetStack.slice(0, 50), ratios: Object.fromEntries([...ratioCache].map(([k, v]) => [k.slice(0, 28), +v.toFixed(2)])) })
+      );
+    });
     // ฟอนต์เว็บที่โหลดช้า: วัดไม่ได้ตอนแรก ให้วัดซ้ำเมื่อโหลดเสร็จ
     document.fonts?.addEventListener?.("loadingdone", () => observer && enforceMin([document.documentElement]));
     observer = new MutationObserver((muts) => {
@@ -162,11 +205,12 @@ ${sel}{font-family:${STACKS[font] || STACKS.mac} !important${lite ? "" : ";line-
   }
 
   function remove() {
+    document.querySelectorAll(`.${GF_ID}`).forEach((l) => l.remove());
     document.getElementById(STYLE_ID)?.remove();
-    document.getElementById(ZOOM_ID)?.remove();
+    document.getElementById(FACES_ID)?.remove();
     stopMin();
   }
-  // เว็บที่ปรับเฉพาะฟอนต์ (ไม่แตะระยะบรรทัด/ขนาดขั้นต่ำ/ซูม) เพราะเลย์เอาต์ตายตัว
+  // เว็บที่ปรับเฉพาะฟอนต์ (ไม่แตะระยะบรรทัด/ขนาดตัวอักษร) เพราะเลย์เอาต์ตายตัว
   const isLite = (hosts) =>
     (hosts || []).some((h) => location.hostname === h || location.hostname.endsWith("." + h));
 
@@ -174,15 +218,15 @@ ${sel}{font-family:${STACKS[font] || STACKS.mac} !important${lite ? "" : ";line-
     remove();
     if (!r.enabled) return;
     const lite = isLite(r.lite);
+    MIN_PX = r.minPx || 22;
     apply(lite, r.font);
     if (lite) return;
-    setSize(r.size);
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => startMin(r.font), { once: true });
     } else startMin(r.font);
   }
 
-  const DEFAULTS = { enabled: true, size: 110, lite: ["youtube.com"], font: "mac" };
+  const DEFAULTS = { enabled: true, lite: ["youtube.com"], font: "mac", minPx: 22 };
   chrome.storage.local.get(DEFAULTS, render);
   chrome.storage.onChanged.addListener(() => chrome.storage.local.get(DEFAULTS, render));
 })();

@@ -24,6 +24,8 @@
   #pct{font-size:34px;font-weight:700;letter-spacing:-.02em}
   .chips{display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--line)}
   .chips button{flex:1;height:30px;padding:0 4px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font:500 13px var(--ff);color:var(--fg);cursor:pointer}
+  .lbl{padding:8px 14px 0;font-size:11px;color:var(--sub);border-top:1px solid var(--line)}
+  .mins{border-top:0;padding-top:6px}
   .fonts{border-top:0;border-bottom:1px solid var(--line)}
   .chips button:hover{background:#ececec}
   .chips button.sel{background:var(--accent-soft);border-color:#b9cdf5;color:var(--accent)}
@@ -41,8 +43,8 @@
 </div>
 <div class="body" id="ctl">
   <div class="card">
-    <div class="chips fonts" id="fonts"><button data-f="mac">macOS</button><button data-f="sarabun">Sarabun</button></div>
-    <div class="big"><button id="minus">A−</button><span id="pct">110</span><button id="plus">A+</button></div>
+    <div class="chips fonts" id="fonts"><button data-f="mac">macOS</button><button data-f="sarabun">Sarabun</button><button data-f="google">Google</button></div>
+    <div class="big"><button id="minus">A−</button><span id="pct">20px</span><button id="plus">A+</button></div>
     <div class="chips" id="chips"></div>
   </div>
   <div class="lite" id="liteRow" hidden>
