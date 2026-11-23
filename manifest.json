@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "ฟอนต์ไทยอ่านง่าย",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "เปลี่ยนฟอนต์ทุกเว็บเป็นฟอนต์ไทยอ่านง่าย (Sarabun) ปรับขนาดได้ — ใช้ส่วนตัว",
   "permissions": [
-    "storage"
+    "storage",
+    "activeTab"
   ],
   "action": {
     "default_title": "ฟอนต์ไทยอ่านง่าย",
