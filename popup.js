@@ -1,7 +1,7 @@
-const DEFMIN = 22;
+const DEFMIN = 20;
 const D = { enabled: true, lite: ["youtube.com"], font: "mac", minPx: DEFMIN };
 const $ = (i) => document.getElementById(i);
-const PRESETS = [18, 22, 26, 30];
+const PRESETS = [18, 20, 24, 28];
 let st = { ...D };
 const chips = $("chips");
 PRESETS.forEach((n) => {

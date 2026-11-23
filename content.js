@@ -72,7 +72,7 @@
     (document.head || document.documentElement).appendChild(el);
   }
   // ---- ขนาดตัวอักษรขั้นต่ำ ----
-  let MIN_PX = 22; // ปรับได้จากเมนู
+  let MIN_PX = 20; // ปรับได้จากเมนู
   const MARK = "data-trf-min";
   const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "SVG", "CANVAS", "IFRAME", "TEXTAREA"]);
   const iconSel = EXCLUDE.join(",");
@@ -218,7 +218,7 @@
     remove();
     if (!r.enabled) return;
     const lite = isLite(r.lite);
-    MIN_PX = r.minPx || 22;
+    MIN_PX = r.minPx || 20;
     apply(lite, r.font);
     if (lite) return;
     if (document.readyState === "loading") {
@@ -226,7 +226,7 @@
     } else startMin(r.font);
   }
 
-  const DEFAULTS = { enabled: true, lite: ["youtube.com"], font: "mac", minPx: 22 };
+  const DEFAULTS = { enabled: true, lite: ["youtube.com"], font: "mac", minPx: 20 };
   chrome.storage.local.get(DEFAULTS, render);
   chrome.storage.onChanged.addListener(() => chrome.storage.local.get(DEFAULTS, render));
 })();
