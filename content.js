@@ -211,14 +211,14 @@
     stopMin();
   }
   // เว็บที่ปรับเฉพาะฟอนต์ (ไม่แตะระยะบรรทัด/ขนาดตัวอักษร) เพราะเลย์เอาต์ตายตัว
-  const isLite = (hosts) =>
+  const inList = (hosts) =>
     (hosts || []).some((h) => location.hostname === h || location.hostname.endsWith("." + h));
 
   function render(r) {
     remove();
     if (!r.enabled) return;
-    const lite = isLite(r.lite);
     MIN_PX = r.minPx || 20;
+    const lite = inList(r.lite);
     apply(lite, r.font);
     if (lite) return;
     if (document.readyState === "loading") {
@@ -226,7 +226,32 @@
     } else startMin(r.font);
   }
 
-  const DEFAULTS = { enabled: true, lite: ["youtube.com"], font: "mac", minPx: 20 };
-  chrome.storage.local.get(DEFAULTS, render);
-  chrome.storage.onChanged.addListener(() => chrome.storage.local.get(DEFAULTS, render));
+  // สถานะรายแท็บมาจาก background, รายชื่อเว็บ "เฉพาะฟอนต์" เก็บรวมใน storage
+  let tabState = { enabled: false, font: "mac", minPx: 20 };
+  let liteList = ["youtube.com"];
+  const refresh = () => render({ ...tabState, lite: liteList });
+  try {
+    chrome.storage.local.get({ lite: liteList }, (r) => {
+      liteList = r.lite;
+      chrome.runtime.sendMessage({ type: "get" }, (s) => {
+        if (chrome.runtime.lastError || !s) return;
+        tabState = s;
+        refresh();
+      });
+    });
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg.type === "state") {
+        tabState = msg.state;
+        refresh();
+      }
+    });
+    chrome.storage.onChanged.addListener((c) => {
+      if (c.lite) {
+        liteList = c.lite.newValue;
+        refresh();
+      }
+    });
+  } catch (e) {
+    /* extension ถูกรีโหลด: ให้รีเฟรชหน้า */
+  }
 })();
